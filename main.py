@@ -1,10 +1,10 @@
 import pygame, sys
 import pygame_menu
 from player_stuff import *
-from level_generator import surface,lvl_matrix,wallsg,generators,spawn_spawners,re_gen
+from level_generator import surface,lvl_matrix,wallsg,generators,spawn_spawners,re_gen,spawn_chest,spawn_exit
 import numpy as np
 from enemy import *
-
+from path_searcher import *
 
 
 
@@ -17,7 +17,6 @@ win = pygame.display.set_mode((win_width, win_width))
 pygame.display.set_caption("Gauntlet_Reforged")
  
 
-
 def game():
     re_gen()
     font = pygame.font.Font("Fonts\EightBitDragon.ttf", 24)
@@ -25,6 +24,7 @@ def game():
     health = font.render("Score",True, (255,0,0))
     pclass = font.render("Warrior",True, (255,0,0))
     sp_left = font.render("Spawners left",True, (255,0,0))
+    alg = font.render("Current algo",True,(255,0,0))
     param_rect = pygame.Rect(610,0, 140,140)
     x = 800
     y = 700
@@ -39,26 +39,61 @@ def game():
     is_turned_x = True
     is_turned_y = True
     animCount = 0
-    generators_count = 20
+    generators_count = 10
+    surface_change_x = 0
+    surface_change_y = 0
     spawn_spawners(generators_count)
-
+    algos = ["bfs","dfs","uniform"]
+    current_search_algo = 0
+    def change_algo(current_search_algo):
+        current_search_algo += 1
+        if current_search_algo == 3:
+            current_search_algo = 0
+        return current_search_algo
+    def exec_algo(algo):
+        if algo == "bfs":
+            c_gr = bfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            e_gr = bfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
+            e_gr.add(c_gr.sprites())
+            c_gr.empty()
+            return e_gr
+        elif algo == "dfs":
+            c_gr = dfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            e_gr = dfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
+            e_gr.add(c_gr.sprites())
+            c_gr.empty()
+            return e_gr
+        elif algo == "uniform":
+            c_gr = uniform_cost_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            e_gr = uniform_cost_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
+            e_gr.add(c_gr.sprites())
+            c_gr.empty()
+            return e_gr
 
     def player_spawn():
+        surface_change_x = 0
+        surface_change_y = 0
         x = y = 0
+        xi = yi = 0
         for i in range(0, 50):
             for j in range(0, 50):
                 if lvl_matrix[i][j] == 0:
                     x = (i) * 48
                     y = (j) * 48
+                    xi = x
+                    yi = y
                     break
+        cx, cy, chestsp = spawn_chest(x/48, y/48)
+        exitsp,ex,ey = spawn_exit(cx, cy)
         while y > int( win_width/ 2):
-            for sur in surface:
+            for sur in surface: 
                 sur.rect.y -= 4
             for wall in wallsg:
                 wall.rect.y -= 4
             for gen in generators:
                 gen.rect.y -= 4
             y -= 4
+            surface_change_y -= 4
         while x > int(win_height / 2):
             for sur in surface:
                 sur.rect.x -= 4
@@ -67,7 +102,7 @@ def game():
             for gen in generators:
                 gen.rect.x -= 4
             x -= 4
-
+            surface_change_x -= 4
         while y < int( win_width/ 2):
             for sur in surface:
                 sur.rect.y += 4
@@ -76,6 +111,7 @@ def game():
             for gen in generators:
                 gen.rect.y += 4
             y += 4
+            surface_change_y += 4
         while x < int(win_height / 2):
             for sur in surface:
                 sur.rect.x += 4
@@ -84,10 +120,11 @@ def game():
             for gen in generators:
                 gen.rect.x += 4
             x += 4
-        return x,y
-    x,y = player_spawn()
+            surface_change_x += 4
+        return x,y,xi,yi,chestsp,exitsp,cx,cy,surface_change_x,surface_change_y,ex,ey
+    x,y,xi,yi,chestsp,exitsp,cx,cy,surface_change_x,surface_change_y,ex,ey = player_spawn()
+    
     running = False
-
     def check_collision(x, y):
         rect = pygame.Rect(x,y, 27,39)
         for wall in wallsg:
@@ -100,14 +137,19 @@ def game():
     start_ticks = pygame.time.get_ticks()
     projectiles = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
+    painted = uniform_cost_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
     for gen in generators:
         gen.new(enemies,Skelet_Pack())
     invulnerability = False
     invulnerability_time = 0.2
     invulnerability_time_ = 0
-    harvest_time = 0.5
+    harvest_time = 1
     harvest_time_ = 0
-
+    attack_rate = 0.3
+    algo_coldown = 0.1
+    algo_time = 0
+    isChestCollected = False
+    
     while run:
         clock.tick(30)
         for event in pygame.event.get():
@@ -128,6 +170,8 @@ def game():
                     en.rect.x += speed
                 for gen in generators:
                     gen.rect.x += speed
+                surface_change_x += speed
+                xi -= speed
                 turned_left = True
                 running = True
                 is_turned_x = True
@@ -146,6 +190,8 @@ def game():
                     en.rect.x -= speed
                 for gen in generators:
                     gen.rect.x -= speed
+                surface_change_x -= speed
+                xi += speed
                 turned_left = False
                 running = True
                 is_turned_x = True
@@ -164,6 +210,8 @@ def game():
                     en.rect.y -= speed
                 for gen in generators:
                     gen.rect.y -= speed
+                surface_change_y -= speed
+                yi += speed
                 running = True
                 turned_up = False
                 is_turned_x = False
@@ -182,12 +230,26 @@ def game():
                     en.rect.y += speed
                 for gen in generators:
                     gen.rect.y += speed
+                surface_change_y += speed
+                yi -= speed
                 running = True
                 turned_up = True
                 is_turned_x = False
                 is_turned_y = True
+        if keys[pygame.K_z]:
+            if (pygame.time.get_ticks() - algo_time)/1000 >= algo_coldown:
+                current_search_algo = change_algo(current_search_algo)
+                algo_time = pygame.time.get_ticks()
+        if keys[pygame.K_x]:
+            if (pygame.time.get_ticks() - algo_time)/1000 >= algo_coldown:
+                if len(painted.sprites()) != 0:
+                    for pai in painted:
+                        painted.remove(pai)
+                        surface.remove(pai)
+                painted = exec_algo(algos[current_search_algo])
+                algo_time = pygame.time.get_ticks()
         if keys[pygame.K_SPACE]:
-            if (pygame.time.get_ticks() - start_ticks)/1000 >= 0.2:
+            if (pygame.time.get_ticks() - start_ticks)/1000 >= attack_rate:
                 projectiles.add(Projectile('Player/Attack/sword.png',x,y,turned_left,turned_up,is_turned_x,is_turned_y))
                 start_ticks = pygame.time.get_ticks()
         win.fill((0,0,0))
@@ -204,18 +266,21 @@ def game():
         for en in enemies:
             en.animate(win,x,y)
         generators.draw(win)
-        pygame.draw.rect(win, (0,0,0), pygame.Rect(620, 0, 280, 220))
+        pygame.draw.rect(win, (0,0,0), pygame.Rect(620, 0, 280, 300))
         surfacegg = pygame.sprite.Group()
         win.blit(health,(640,50))
         win.blit(score,(780,50))
         win.blit(pclass,(695,10))
         win.blit(sp_left,(655,130))
+        win.blit(alg,(655,220))
         scrope_points = font.render(str(score_points),True, (255,0,0))
         health_points_text = font.render(str(health_points),True, (255,0,0))
         spawners_text = font.render(str(generators_count),True, (255,0,0))
+        cur_algo_text = font.render(algos[current_search_algo],True, (255,0,0))
         win.blit(health_points_text,(780,90))
         win.blit(scrope_points,(640,90))
         win.blit(spawners_text,(730,170))
+        win.blit(cur_algo_text,(720,260))
         for gen in generators:
             for proj in projectiles:
                 if pygame.sprite.collide_rect(proj, gen) == True:
@@ -227,7 +292,7 @@ def game():
                 if gen.check_if_killed(proj,projectiles) == True:
                     score_points += 5
                     continue
-
+        
         for i in projectiles:
             if i.check_collission(wallsg,surfacegg):
                 projectiles.remove(i)
@@ -243,6 +308,15 @@ def game():
                 health_points -= 5
                 invulnerability_time_ = pygame.time.get_ticks()
                 break
+
+        rect = pygame.Rect(x,y, 27,39)
+        if isChestCollected == False and chestsp.rect.colliderect(rect) == True:
+            isChestCollected = True
+            surface.remove(chestsp)
+
+        if isChestCollected == True and exitsp.rect.colliderect(rect) == True:
+            run = False
+
         if (pygame.time.get_ticks() - invulnerability_time_)/1000 >= invulnerability_time:
             invulnerability = False
         if (pygame.time.get_ticks() - harvest_time_)/1000 >= harvest_time:
@@ -328,6 +402,5 @@ def main_menu():
         clock.tick(30)
 
 main_menu()
-
 
 pygame.quit()

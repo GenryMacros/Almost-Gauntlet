@@ -35,6 +35,7 @@ walls = [
 ]
 
 
+
 surface = pygame.sprite.Group()
 wallsg = pygame.sprite.Group()
 
@@ -44,8 +45,8 @@ map_size_x = 50 * 16 * floor_scale
 map_size_y = 50 * 16 * floor_scale
 lvl_matrix = np.ones((50,50))
 generators = pygame.sprite.Group()
-
-
+chestsp = SurfPart("Surface/chest.png",0, 0)
+exitsp = SurfPart("Surface/chest.png",0, 0)
 
 def change_dir():
     x = 0
@@ -109,8 +110,34 @@ def spawn_spawners(count):
         for j in range(50):
             if randint(0, 10) == 10 and lvl_matrix[i][j] == 0:
                 count -= 1
-                lvl_matrix[i][j] = 2
+                lvl_matrix[i][j] = 3
                 generators.add(Monster_Generator(
-                    lvl_matrix, i*16 * floor_scale, j*16 * floor_scale))
+                    lvl_matrix, i*16 * floor_scale, j*16 * floor_scale, i*48,j*48))
                 if count == 0:
                     return
+
+def spawn_chest(playerx, playery):
+    for i in range(50):
+        for j in range(49,0,-1):
+            if lvl_matrix[i][j] == 0:
+                x = (i + 1) - playerx
+                y = (j + 1) - playery
+                dis = ((x*x) + (y*y))**(0.5)
+                if dis > 25:
+                    lvl_matrix[i][j] = 2
+                    chest = SurfPart("Surface/chest.png",i * 48, j * 48)
+                    surface.add(chest)
+                    return i,j,chest
+
+def spawn_exit(chestx, chesty):
+    for i in range(50):
+        for j in range(50):
+            if lvl_matrix[i][j] == 0:
+                x = (i + 1) - chestx
+                y = (j + 1) - chesty
+                dis = ((x*x) + (y*y))**(0.5)
+                if dis > 20:
+                    lvl_matrix[i][j] = 2
+                    exit = SurfPart("Surface/ladder.png",i * 48, j * 48)
+                    surface.add(exit)
+                    return exit,i ,j 

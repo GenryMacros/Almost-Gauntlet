@@ -20,7 +20,7 @@ class Skelet_Pack:
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pack,walls, pos_x, pos_y):
+    def __init__(self, pack,walls, pos_x, pos_y, pos_i, pos_j):
         super().__init__()
         self.pack = pack
         self.image = pygame.image.load(pack.idle)
@@ -28,6 +28,8 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = pos_x
         self.rect.y = pos_y
+        self.pos_i = pos_i
+        self.pos_j = pos_j
         self.walls = walls
         self.speed = 3
         self.animCount = 0
@@ -45,14 +47,18 @@ class Enemy(pygame.sprite.Sprite):
         if (((player_x - self.rect.x)**2 + (player_y - self.rect.y)**2)**(1/2)) <= 600:
             if player_x > self.rect.x and self.check_wall_collision(self.rect.x + self.speed, self.rect.y) == False:
                 self.rect.x += self.speed
+                self.pos_i  += self.speed
                 self.turned_left = True
             elif player_x < self.rect.x and self.check_wall_collision(self.rect.x - self.speed, self.rect.y) == False:
                 self.rect.x -= self.speed
+                self.pos_i  -= self.speed
                 self.turned_left = False
             if player_y > self.rect.y and self.check_wall_collision(self.rect.x, self.rect.y + self.speed) == False:
                 self.rect.y += self.speed
+                self.pos_j  += self.speed
             elif player_y < self.rect.y and self.check_wall_collision(self.rect.x, self.rect.y - self.speed) == False:
                 self.rect.y -= self.speed
+                self.pos_j  -= self.speed
             self.moving = True
         else:
             self.moving = False
