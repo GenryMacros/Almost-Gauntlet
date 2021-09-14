@@ -101,6 +101,8 @@ def dfs_search(startx, starty, enemies, targetx, targety,surface,surfacechx,surf
     while curX != startx or curY != starty:
         curX = paths[curX * 50 + curY].x
         curY = paths[curX * 50 + curY].y
+        if curX == 0 and curY == 0:
+            break
         paintd = SurfPart("wall.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
         surface.add(paintd)
         painted_group.add(paintd)

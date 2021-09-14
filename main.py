@@ -1,5 +1,6 @@
 import pygame, sys
 import pygame_menu
+from datetime import datetime
 from player_stuff import *
 from level_generator import surface,lvl_matrix,wallsg,generators,spawn_spawners,re_gen,spawn_chest,spawn_exit
 import numpy as np
@@ -82,7 +83,7 @@ def game():
                     y = (j) * 48
                     xi = x
                     yi = y
-                    break
+                    break       
         cx, cy, chestsp = spawn_chest(x/48, y/48)
         exitsp,ex,ey = spawn_exit(cx, cy)
         while y > int( win_width/ 2):
@@ -149,7 +150,7 @@ def game():
     algo_coldown = 0.1
     algo_time = 0
     isChestCollected = False
-    
+    last_algo = 0
     while run:
         clock.tick(30)
         for event in pygame.event.get():
@@ -246,7 +247,9 @@ def game():
                     for pai in painted:
                         painted.remove(pai)
                         surface.remove(pai)
+                start_time = datetime.now()
                 painted = exec_algo(algos[current_search_algo])
+                last_algo = datetime.now() - start_time
                 algo_time = pygame.time.get_ticks()
         if keys[pygame.K_SPACE]:
             if (pygame.time.get_ticks() - start_ticks)/1000 >= attack_rate:
@@ -266,7 +269,7 @@ def game():
         for en in enemies:
             en.animate(win,x,y)
         generators.draw(win)
-        pygame.draw.rect(win, (0,0,0), pygame.Rect(620, 0, 280, 300))
+        pygame.draw.rect(win, (0,0,0), pygame.Rect(620, 0, 280, 340))
         surfacegg = pygame.sprite.Group()
         win.blit(health,(640,50))
         win.blit(score,(780,50))
@@ -276,11 +279,13 @@ def game():
         scrope_points = font.render(str(score_points),True, (255,0,0))
         health_points_text = font.render(str(health_points),True, (255,0,0))
         spawners_text = font.render(str(generators_count),True, (255,0,0))
+        last_algo_text = font.render(str(last_algo),True, (255,0,0))
         cur_algo_text = font.render(algos[current_search_algo],True, (255,0,0))
         win.blit(health_points_text,(780,90))
         win.blit(scrope_points,(640,90))
         win.blit(spawners_text,(730,170))
         win.blit(cur_algo_text,(720,260))
+        win.blit(last_algo_text,(650,310))
         for gen in generators:
             for proj in projectiles:
                 if pygame.sprite.collide_rect(proj, gen) == True:
