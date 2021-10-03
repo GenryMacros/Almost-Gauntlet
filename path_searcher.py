@@ -1,11 +1,19 @@
 import pygame
+import math 
 from collections import deque
 from level_generator import *
+from queue import PriorityQueue
 import time
 class Dot:
     def __init__(self,x,y):
         self.x = x
         self.y = y
+
+class Eval_Dot:
+    def __init__(self,x,y,cost):
+        self.x = x
+        self.y = y
+        self.cost = cost
 
 def bfs_search(startx, starty, enemies, targetx, targety,surface,surfacechx,surfacechy):
     que = deque()
@@ -16,15 +24,9 @@ def bfs_search(startx, starty, enemies, targetx, targety,surface,surfacechx,surf
     que.append(Dot(startx, starty)) 
     while len(que) != 0:
         cur_dot = que.popleft()
-        is_enemy_onway = False
         if cur_dot.x == targetx and cur_dot.y == targety:
             break
-        for en in enemies:
-            if abs(int((en.pos_i)/48)) == cur_dot.x and abs(int((en.pos_j)/48)) == cur_dot.y:
-                is_enemy_onway = True
-                break
-        if is_enemy_onway:
-            continue
+
         if cur_dot.x + 1 < 50 and visited[cur_dot.x + 1][cur_dot.y] == 0 and lvl_matrix[cur_dot.x + 1][cur_dot.y] != 1:
             paths[(cur_dot.x + 1)*50 + cur_dot.y] = Dot(cur_dot.x, cur_dot.y)
             visited[cur_dot.x + 1][cur_dot.y] = 1
@@ -48,13 +50,14 @@ def bfs_search(startx, starty, enemies, targetx, targety,surface,surfacechx,surf
     curY = targety
     painted_group = pygame.sprite.Group()
     while curX != startx or curY != starty:
+        paintd = SurfPart("empty.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
+        surface.add(paintd)
+        painted_group.add(paintd)
         curX = paths[curX * 50 + curY].x
         curY = paths[curX * 50 + curY].y
         if curX == 0 and curY == 0:
             break
-        paintd = SurfPart("wall.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
-        surface.add(paintd)
-        painted_group.add(paintd)
+       
     return painted_group
 
 

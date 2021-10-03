@@ -26,12 +26,14 @@ Scale_arr(player_walk)
 
 
 class Projectile(pygame.sprite.Sprite):
-    def __init__(self, picture_path, pos_x, pos_y, is_left, is_up, is_turned_x, is_turned_y):
+    def __init__(self, picture_path, pos_x, pos_y, is_left, is_up, is_turned_x, is_turned_y, pos_i, pos_j):
         super().__init__()
         self.image = pygame.image.load(picture_path)
         self.image = pygame.transform.scale(self.image , (int(self.image.get_width() * sprite_scale_x), int(self.image.get_height() * sprite_scale_y)))
         self.rect = self.image.get_rect()
         self.rect.x = pos_x
+        self.pos_i = pos_i
+        self.pos_j = pos_j
         self.rect.y = pos_y
         self.is_left = is_left
         self.is_up = is_up
@@ -53,13 +55,17 @@ class Projectile(pygame.sprite.Sprite):
         if self.is_turned_x == True:
             if self.is_left == True:
                 self.rect.x -= 10
+                self.pos_i -= 10
             else:
                 self.rect.x += 10
+                self.pos_i -= 10
         if self.is_turned_y == True:
             if self.is_up == True:
                 self.rect.y -= 10
+                self.pos_j -= 10
             else:
                 self.rect.y += 10
+                self.pos_j += 10
 
         
     def check_collission(self, walls, enemies):

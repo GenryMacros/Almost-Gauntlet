@@ -112,7 +112,7 @@ def spawn_spawners(count):
                 count -= 1
                 lvl_matrix[i][j] = 3
                 generators.add(Monster_Generator(
-                    lvl_matrix, i*16 * floor_scale, j*16 * floor_scale, i*48,j*48))
+                    lvl_matrix, i*16 * floor_scale, j*16 * floor_scale, i*48,j*48, lvl_matrix))
                 if count == 0:
                     return
 

@@ -8,6 +8,44 @@ from enemy import *
 from path_searcher import *
 
 
+def check_collision(rect, arr):
+        for el in arr:
+            if el.rect.colliderect(rect):
+                return True
+        return False
+
+def get_attack_direction(startx, starty, enemies, walls):
+    rect = pygame.Rect(startx, starty, 10, 10)
+    while True:
+        if check_collision(rect, enemies):
+            return 0
+        rect.x += 1
+        if check_collision(rect, walls):
+            break
+    rect = pygame.Rect(startx, starty, 10, 10)
+    while True:
+        if check_collision(rect, enemies):
+            return 1
+        rect.x -= 1
+        if check_collision(rect, walls):
+            break
+
+    rect = pygame.Rect(startx, starty, 10, 10)
+    while True:
+        if check_collision(rect, enemies):
+            return 2
+        rect.y += 1
+        if check_collision(rect, walls):
+            break
+
+    rect = pygame.Rect(startx, starty, 10, 10)
+    while True:
+        if check_collision(rect, enemies):
+            return 3
+        rect.y -= 1
+        if check_collision(rect, walls):
+            break
+    return -1
 
 pygame.init()
 win_width = 900
@@ -20,7 +58,7 @@ pygame.display.set_caption("Gauntlet_Reforged")
 
 def game():
     re_gen()
-    font = pygame.font.Font("Fonts\EightBitDragon.ttf", 24)
+    font = pygame.font.Font("Fonts/EightBitDragon.ttf", 24)
     score = font.render("Health",True, (255,0,0))
     health = font.render("Score",True, (255,0,0))
     pclass = font.render("Warrior",True, (255,0,0))
@@ -32,7 +70,7 @@ def game():
     width = 32
     height = 32
     speed = 5
-    health_points = 5000
+    health_points = 200
 
     run = True
     turned_left = False
@@ -51,25 +89,22 @@ def game():
         if current_search_algo == 3:
             current_search_algo = 0
         return current_search_algo
-    def exec_algo(algo):
+    def exec_algo(algo, isChestCollected):
         if algo == "bfs":
-            c_gr = bfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
-            e_gr = bfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
-            e_gr.add(c_gr.sprites())
-            c_gr.empty()
-            return e_gr
+            if isChestCollected == False:
+                return bfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            else:
+                return bfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
         elif algo == "dfs":
-            c_gr = dfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
-            e_gr = dfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
-            e_gr.add(c_gr.sprites())
-            c_gr.empty()
-            return e_gr
+            if isChestCollected == False:
+                return dfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            else:
+                return dfs_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
         elif algo == "uniform":
-            c_gr = uniform_cost_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
-            e_gr = uniform_cost_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
-            e_gr.add(c_gr.sprites())
-            c_gr.empty()
-            return e_gr
+            if isChestCollected == False:
+                return uniform_cost_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+            else:
+                return uniform_cost_search(int(xi/48),int(yi/48),enemies,ex,ey,surface,surface_change_x,surface_change_y)
 
     def player_spawn():
         surface_change_x = 0
@@ -127,18 +162,19 @@ def game():
     
     running = False
     def check_collision(x, y):
-        rect = pygame.Rect(x,y, 27,39)
+        rect = pygame.Rect(x,y, 27,35)
         for wall in wallsg:
             if wall.rect.colliderect(rect):
                 return True
         return False
+    def in_range(val1, val2, rn):
+        return (val1 - rn) < val2 and (val1 + rn) > val2
 
     score_points = 0
     projs = []
     start_ticks = pygame.time.get_ticks()
     projectiles = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
-    painted = uniform_cost_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
     for gen in generators:
         gen.new(enemies,Skelet_Pack())
     invulnerability = False
@@ -147,18 +183,20 @@ def game():
     harvest_time = 1
     harvest_time_ = 0
     attack_rate = 0.3
-    algo_coldown = 0.1
+    algo_coldown = 3
     algo_time = 0
     isChestCollected = False
     last_algo = 0
+    painted = bfs_search(int(xi/48),int(yi/48),enemies,cx,cy,surface,surface_change_x,surface_change_y)
+    next_tile = painted.sprites()[-1]
     while run:
         clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            if check_collision(x - speed/20 - speed, y) == True:
+        if next_tile.rect.x < x :
+            if False:
                 turned_left = True
             else:
                 for sur in surface:
@@ -177,8 +215,8 @@ def game():
                 running = True
                 is_turned_x = True
                 is_turned_y = False
-        if keys[pygame.K_RIGHT]:
-            if check_collision(x + speed , y) == True:
+        if next_tile.rect.x > x:
+            if False:
                 turned_left = False
             else:
                 for sur in surface:
@@ -197,8 +235,8 @@ def game():
                 running = True
                 is_turned_x = True
                 is_turned_y = False
-        if keys[pygame.K_DOWN]:
-            if check_collision(x , y + speed) == True:
+        if next_tile.rect.y > y:
+            if False:
                 turned_left = False
             else:
                 for sur in surface:
@@ -217,8 +255,8 @@ def game():
                 turned_up = False
                 is_turned_x = False
                 is_turned_y = True
-        if keys[pygame.K_UP]:
-            if check_collision(x , y - speed) == True:
+        if next_tile.rect.y < y:
+            if False:
                 turned_left = False
             else:
                 for sur in surface:
@@ -237,23 +275,63 @@ def game():
                 turned_up = True
                 is_turned_x = False
                 is_turned_y = True
-        if keys[pygame.K_z]:
-            if (pygame.time.get_ticks() - algo_time)/1000 >= algo_coldown:
-                current_search_algo = change_algo(current_search_algo)
-                algo_time = pygame.time.get_ticks()
-        if keys[pygame.K_x]:
-            if (pygame.time.get_ticks() - algo_time)/1000 >= algo_coldown:
-                if len(painted.sprites()) != 0:
-                    for pai in painted:
-                        painted.remove(pai)
-                        surface.remove(pai)
-                start_time = datetime.now()
-                painted = exec_algo(algos[current_search_algo])
-                last_algo = datetime.now() - start_time
-                algo_time = pygame.time.get_ticks()
-        if keys[pygame.K_SPACE]:
-            if (pygame.time.get_ticks() - start_ticks)/1000 >= attack_rate:
-                projectiles.add(Projectile('Player/Attack/sword.png',x,y,turned_left,turned_up,is_turned_x,is_turned_y))
+        if  in_range(next_tile.rect.x, x, 12) and in_range(next_tile.rect.y, y, 12):
+            painted.remove(next_tile)
+            surface.remove(next_tile)
+            if len(painted.sprites()) != 0:
+                next_tile = painted.sprites()[-1]
+
+        rect = pygame.Rect(x,y, 27,39)
+        if isChestCollected == False and chestsp.rect.colliderect(rect) == True:
+            isChestCollected = True
+            algo_time = 0
+            surface.remove(chestsp)
+
+        if (pygame.time.get_ticks() - algo_time)/1000 >= algo_coldown and check_collision(x,y) == False:
+            if len(painted.sprites()) != 0:
+                for pai in painted:
+                    painted.remove(pai)
+                    surface.remove(pai)
+            start_time = datetime.now()
+            painted = exec_algo(algos[current_search_algo],isChestCollected)
+            next_tile = painted.sprites()[-1]
+                
+            last_algo = datetime.now() - start_time
+            algo_time = pygame.time.get_ticks()
+
+        if (pygame.time.get_ticks() - start_ticks)/1000 >= attack_rate:
+            dir = get_attack_direction(x, y, enemies, wallsg)
+            if dir == -1:
+                pass
+            else:
+                is_left = is_up = is_turned_x = is_turned_y = False
+                if dir == 0:
+                    is_left = False
+                    is_up = False
+                    is_turned_x = True
+                    is_turned_y = False
+                elif dir == 1:
+                    is_left = True
+                    is_up = False
+                    is_turned_x = True
+                    is_turned_y = False
+                elif dir == 2:
+                    is_left = False
+                    is_up = False
+                    is_turned_x = False
+                    is_turned_y = True
+                elif dir == 3:
+                    is_left = False
+                    is_up = True
+                    is_turned_x = False
+                    is_turned_y = True
+                projectiles.add(Projectile('Player/Attack/sword.png', x, y,
+                is_left,
+                is_up,
+                is_turned_x,
+                is_turned_y,
+                xi,
+                yi))
                 start_ticks = pygame.time.get_ticks()
         win.fill((0,0,0))
         if animCount + 2 >= 20:
@@ -267,7 +345,7 @@ def game():
         else:
             win.blit(pygame.transform.flip(player_idle, turned_left, False), (x,y))
         for en in enemies:
-            en.animate(win,x,y)
+            en.animate(win, xi, yi, surface_change_x, surface_change_y, projectiles)
         generators.draw(win)
         pygame.draw.rect(win, (0,0,0), pygame.Rect(620, 0, 280, 340))
         surfacegg = pygame.sprite.Group()
@@ -314,11 +392,6 @@ def game():
                 invulnerability_time_ = pygame.time.get_ticks()
                 break
 
-        rect = pygame.Rect(x,y, 27,39)
-        if isChestCollected == False and chestsp.rect.colliderect(rect) == True:
-            isChestCollected = True
-            surface.remove(chestsp)
-
         if isChestCollected == True and exitsp.rect.colliderect(rect) == True:
             run = False
 
@@ -358,7 +431,7 @@ blue=(0, 0, 255)
 yellow=(255, 255, 0)
  
 def main_menu():
-    font = "Fonts\EightBitDragon.ttf"
+    font = "Fonts/EightBitDragon.ttf"
     menu=True
     selected="start"
  
