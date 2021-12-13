@@ -50,11 +50,22 @@ def bfs_search(startx, starty, enemies, targetx, targety,surface,surfacechx,surf
     curY = targety
     painted_group = pygame.sprite.Group()
     while curX != startx or curY != starty:
-        paintd = SurfPart("empty.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
+        if curX == targetx and curY == targety:
+            paintd = SurfPart("empty.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
+        else:
+            paintd = SurfPart("wall.png", curX * 48 + surfacechx,  curY * 48 + surfacechy)
         surface.add(paintd)
         painted_group.add(paintd)
+        lastx = curX
+        lasty = curY
         curX = paths[curX * 50 + curY].x
         curY = paths[curX * 50 + curY].y
+        x_diff = curX - lastx
+        y_diff = curY - lasty
+        if x_diff != 0 and y_diff != 0:
+            paintd = SurfPart("wall.png", curX * 48 + surfacechx,  (curY - y_diff)* 48 + surfacechy)
+            painted_group.add(paintd)
+            surface.add(paintd)
         if curX == 0 and curY == 0:
             break
        

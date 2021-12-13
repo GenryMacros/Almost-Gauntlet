@@ -123,7 +123,7 @@ def spawn_chest(playerx, playery):
                 x = (i + 1) - playerx
                 y = (j + 1) - playery
                 dis = ((x*x) + (y*y))**(0.5)
-                if dis > 25:
+                if dis > 15:
                     lvl_matrix[i][j] = 2
                     chest = SurfPart("Surface/chest.png",i * 48, j * 48)
                     surface.add(chest)
@@ -141,3 +141,8 @@ def spawn_exit(chestx, chesty):
                     exit = SurfPart("Surface/ladder.png",i * 48, j * 48)
                     surface.add(exit)
                     return exit,i ,j 
+
+def clean():
+    surface.empty()
+    wallsg.empty()
+    generators.empty()

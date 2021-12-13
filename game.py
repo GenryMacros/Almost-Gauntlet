@@ -1,8 +1,7 @@
 import pygame
-from Config import *
 from player import *
 from level_generator import *
-
+import os
 pygame.init()
 
 class Game:
@@ -10,7 +9,7 @@ class Game:
         pygame.init()
         self.win_width = 900
         self.win_height = 700
-        self.screen = pygame.display.set_mode((self.win_width, self.win_height))
+        self.screen = pygame.display.set_mode((win_width / 2, win_height / 2))
         self.font = pygame.font.Font("Fonts\EightBitDragon.ttf",25)
         self.running = True
         self.surface = pygame.sprite.Group()
